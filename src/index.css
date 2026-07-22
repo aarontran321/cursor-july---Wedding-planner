@@ -46,6 +46,19 @@ body {
   font-weight: 600; cursor: pointer;
 }
 .admin-btn:hover { border-color: var(--pink); }
+.admin-btn.bell { font-size: 16px; padding: 8px 14px; }
+.invite-btn {
+  background: var(--pink); color: #fff; border: none; border-radius: 999px;
+  padding: 8px 16px; font-weight: 700; cursor: pointer;
+}
+.invite-btn:hover { filter: brightness(1.08); }
+
+.notif {
+  display: flex; align-items: center; gap: 12px; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+}
+.notif-emoji { font-size: 22px; }
+.notif-info { display: flex; flex-direction: column; gap: 2px; }
 .badge {
   position: absolute; top: -7px; right: -7px; background: var(--pink);
   color: #fff; font-size: 11px; font-weight: 700; min-width: 19px; height: 19px;

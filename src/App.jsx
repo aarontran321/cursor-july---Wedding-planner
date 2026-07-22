@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { load, save, resetAll, ROLES, isMatch } from './store'
+import { load, save, resetAll, ROLES, isMatch, GUEST_NAMES } from './store'
 
 export default function App() {
   const [state, setState] = useState(load)
   const [role, setRole] = useState('spouseA')
   const [view, setView] = useState({ name: 'home' }) // {name:'home'} | {name:'album', albumId}
   const [suggestFor, setSuggestFor] = useState(null) // albumId or null
-  const [showAdmin, setShowAdmin] = useState(false)
+  const [showNotifs, setShowNotifs] = useState(false)
 
   useEffect(() => save(state), [state])
 
@@ -17,7 +17,9 @@ export default function App() {
 
   const approvedByAlbum = (albumId) =>
     state.options.filter((o) => o.albumId === albumId && o.status === 'approved')
-  const pending = state.options.filter((o) => o.status === 'pending')
+
+  const notifications = state.notifications || []
+  const unread = notifications.filter((n) => !n.read).length
 
   const setLike = (optId, liked) =>
     update((opts) =>
@@ -26,6 +28,7 @@ export default function App() {
       )
     )
 
+  // Guest ideas are auto-accepted straight into the album for the couple to swipe on.
   const addSuggestion = (albumId, data) =>
     update((opts) => [
       {
@@ -36,7 +39,7 @@ export default function App() {
         price: data.price,
         imageUrl: data.imageUrl,
         gradient: 'linear-gradient(135deg,#556,#223)',
-        status: isSpouse ? 'approved' : 'pending',
+        status: 'approved',
         likes: { spouseA: false, spouseB: false },
         addedBy: role,
         createdAt: Date.now(),
@@ -44,9 +47,31 @@ export default function App() {
       ...opts,
     ])
 
-  const approve = (optId) =>
-    update((opts) => opts.map((o) => (o.id === optId ? { ...o, status: 'approved' } : o)))
-  const reject = (optId) => update((opts) => opts.filter((o) => o.id !== optId))
+  const openNotifs = () => {
+    setShowNotifs(true)
+    setState((s) => ({
+      ...s,
+      notifications: (s.notifications || []).map((n) => ({ ...n, read: true })),
+    }))
+  }
+
+  // simulate a guest accepting the invite / joining the board
+  const simulateJoin = () => {
+    const name = GUEST_NAMES[Math.floor(Math.random() * GUEST_NAMES.length)]
+    setState((s) => ({
+      ...s,
+      notifications: [
+        {
+          id: Math.random().toString(36).slice(2, 9),
+          text: `${name} joined the board`,
+          emoji: '🎉',
+          read: false,
+          createdAt: Date.now(),
+        },
+        ...(s.notifications || []),
+      ],
+    }))
+  }
 
   return (
     <div className="app">
@@ -56,10 +81,15 @@ export default function App() {
         </div>
         <div className="topbar-right">
           {isSpouse && (
-            <button className="admin-btn" onClick={() => setShowAdmin(true)}>
-              Requests
-              {pending.length > 0 && <span className="badge">{pending.length}</span>}
-            </button>
+            <>
+              <button className="invite-btn" onClick={simulateJoin}>
+                + Invite guest
+              </button>
+              <button className="admin-btn bell" onClick={openNotifs} title="Notifications">
+                🔔
+                {unread > 0 && <span className="badge">{unread}</span>}
+              </button>
+            </>
           )}
           <RoleSwitcher role={role} setRole={setRole} />
         </div>
@@ -95,13 +125,10 @@ export default function App() {
         />
       )}
 
-      {showAdmin && (
-        <AdminPanel
-          pending={pending}
-          albums={state.albums}
-          onApprove={approve}
-          onReject={reject}
-          onClose={() => setShowAdmin(false)}
+      {showNotifs && (
+        <NotificationsPanel
+          notifications={notifications}
+          onClose={() => setShowNotifs(false)}
         />
       )}
 
@@ -341,7 +368,7 @@ function SuggestModal({ album, isSpouse, onClose, onAdd }) {
       <p className="modal-sub">
         {isSpouse
           ? 'Added straight to the album.'
-          : 'Your suggestion goes to the couple for approval.'}
+          : 'Added to the album for the couple to swipe on.'}
       </p>
       <label>Name *</label>
       <input value={form.title} onChange={set('title')} placeholder="e.g. Olive & Vine" />
@@ -360,42 +387,38 @@ function SuggestModal({ album, isSpouse, onClose, onAdd }) {
           Cancel
         </button>
         <button className="primary" disabled={!canSave} onClick={() => onAdd(form)}>
-          {isSpouse ? 'Add to album' : 'Send suggestion'}
+          {isSpouse ? 'Add to album' : 'Add idea'}
         </button>
       </div>
     </Modal>
   )
 }
 
-function AdminPanel({ pending, albums, onApprove, onReject, onClose }) {
-  const albumName = (id) => {
-    const a = albums.find((x) => x.id === id)
-    return a ? `${a.emoji} ${a.name}` : id
-  }
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000)
+  if (s < 60) return 'just now'
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
+
+function NotificationsPanel({ notifications, onClose }) {
   return (
     <Modal onClose={onClose}>
-      <h3>Guest requests</h3>
-      <p className="modal-sub">Only you two can approve what shows up in the albums.</p>
-      {pending.length === 0 ? (
-        <div className="empty-req">No pending requests 🎉</div>
+      <h3>Notifications</h3>
+      <p className="modal-sub">People you invited who joined the board.</p>
+      {notifications.length === 0 ? (
+        <div className="empty-req">No notifications yet 🎉</div>
       ) : (
         <div className="req-list">
-          {pending.map((o) => (
-            <div className="req" key={o.id}>
-              <div className="req-info">
-                <span className="req-album">{albumName(o.albumId)}</span>
-                <strong>{o.title}</strong>
-                <span className="req-sub">
-                  {o.subtitle} {o.price && `· ${o.price}`}
-                </span>
-              </div>
-              <div className="req-actions">
-                <button className="reject" onClick={() => onReject(o.id)}>
-                  Reject
-                </button>
-                <button className="approve" onClick={() => onApprove(o.id)}>
-                  Approve
-                </button>
+          {notifications.map((n) => (
+            <div className="notif" key={n.id}>
+              <span className="notif-emoji">{n.emoji || '🎉'}</span>
+              <div className="notif-info">
+                <strong>{n.text}</strong>
+                <span className="req-sub">{timeAgo(n.createdAt)}</span>
               </div>
             </div>
           ))}
