@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { load, save, resetAll, ROLES, isMatch } from './store'
+import Crm from './Crm.jsx'
+import { newVendor, newLogEntry, parsePrice } from './crm'
 
 export default function App() {
   const [state, setState] = useState(load)
   const [role, setRole] = useState('spouseA')
+  const [section, setSection] = useState('plan') // 'plan' | 'crm'
   const [view, setView] = useState({ name: 'home' }) // {name:'home'} | {name:'album', albumId}
   const [suggestFor, setSuggestFor] = useState(null) // albumId or null
   const [showAdmin, setShowAdmin] = useState(false)
@@ -14,6 +17,35 @@ export default function App() {
   const isSpouse = current.kind === 'spouse'
 
   const update = (fn) => setState((s) => ({ ...s, options: fn(s.options) }))
+  const updateVendors = (fn) => setState((s) => ({ ...s, vendors: fn(s.vendors) }))
+
+  // --- CRM handlers ---
+  const addVendor = (data) => {
+    const v = newVendor(data)
+    updateVendors((vs) => [v, ...vs])
+    return v.id
+  }
+  const patchVendor = (id, patch) =>
+    updateVendors((vs) => vs.map((v) => (v.id === id ? { ...v, ...patch } : v)))
+  const deleteVendor = (id) => updateVendors((vs) => vs.filter((v) => v.id !== id))
+  const addVendorLog = (id, type, summary) =>
+    updateVendors((vs) =>
+      vs.map((v) => (v.id === id ? { ...v, log: [newLogEntry(type, summary), ...v.log] } : v))
+    )
+
+  // Bridge from the swipe dashboard: turn a matched option into a CRM lead.
+  const trackedOptionIds = new Set(state.vendors.map((v) => v.sourceOptionId).filter(Boolean))
+  const trackOption = (option, albumId) => {
+    if (trackedOptionIds.has(option.id)) return
+    addVendor({
+      name: option.title,
+      category: albumId,
+      quoteAmount: parsePrice(option.price),
+      status: 'lead',
+      sourceOptionId: option.id,
+      notes: option.subtitle || '',
+    })
+  }
 
   const approvedByAlbum = (albumId) =>
     state.options.filter((o) => o.albumId === albumId && o.status === 'approved')
@@ -51,11 +83,33 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand" onClick={() => setView({ name: 'home' })}>
-          <span className="ring">💍</span> Marrymap
+        <div className="topbar-left">
+          <div
+            className="brand"
+            onClick={() => {
+              setSection('plan')
+              setView({ name: 'home' })
+            }}
+          >
+            <span className="ring">💍</span> Marrymap
+          </div>
+          <nav className="nav-tabs">
+            <button
+              className={'nav-tab' + (section === 'plan' ? ' active' : '')}
+              onClick={() => setSection('plan')}
+            >
+              Albums
+            </button>
+            <button
+              className={'nav-tab' + (section === 'crm' ? ' active' : '')}
+              onClick={() => setSection('crm')}
+            >
+              CRM
+            </button>
+          </nav>
         </div>
         <div className="topbar-right">
-          {isSpouse && (
+          {isSpouse && section === 'plan' && (
             <button className="admin-btn" onClick={() => setShowAdmin(true)}>
               Requests
               {pending.length > 0 && <span className="badge">{pending.length}</span>}
@@ -65,7 +119,15 @@ export default function App() {
         </div>
       </header>
 
-      {view.name === 'home' ? (
+      {section === 'crm' ? (
+        <Crm
+          vendors={state.vendors}
+          onAdd={addVendor}
+          onPatch={patchVendor}
+          onDelete={deleteVendor}
+          onAddLog={addVendorLog}
+        />
+      ) : view.name === 'home' ? (
         <Home
           albums={state.albums}
           options={state.options}
@@ -80,6 +142,8 @@ export default function App() {
           onLike={setLike}
           onBack={() => setView({ name: 'home' })}
           onSuggest={() => setSuggestFor(view.albumId)}
+          onTrack={trackOption}
+          trackedOptionIds={trackedOptionIds}
         />
       )}
 
@@ -170,7 +234,7 @@ function Home({ albums, options, onOpen }) {
   )
 }
 
-function AlbumView({ album, options, role, isSpouse, onLike, onBack, onSuggest }) {
+function AlbumView({ album, options, role, isSpouse, onLike, onBack, onSuggest, onTrack, trackedOptionIds }) {
   // deck = approved options this role hasn't liked yet (for spouses),
   // guests just browse the full deck.
   const [idx, setIdx] = useState(0)
@@ -306,22 +370,35 @@ function AlbumView({ album, options, role, isSpouse, onLike, onBack, onSuggest }
         <section className="matches">
           <h4>💖 Matched — you both said yes</h4>
           <div className="match-row">
-            {matches.map((o) => (
-              <div className="match-card" key={o.id}>
-                <div
-                  className="match-thumb"
-                  style={
-                    o.imageUrl
-                      ? { backgroundImage: `url(${o.imageUrl})` }
-                      : { backgroundImage: o.gradient }
-                  }
-                />
-                <div>
-                  <strong>{o.title}</strong>
-                  <span>{o.price}</span>
+            {matches.map((o) => {
+              const tracked = trackedOptionIds?.has(o.id)
+              return (
+                <div className="match-card" key={o.id}>
+                  <div
+                    className="match-thumb"
+                    style={
+                      o.imageUrl
+                        ? { backgroundImage: `url(${o.imageUrl})` }
+                        : { backgroundImage: o.gradient }
+                    }
+                  />
+                  <div className="match-info">
+                    <strong>{o.title}</strong>
+                    <span>{o.price}</span>
+                  </div>
+                  {onTrack && (
+                    <button
+                      className={'track-btn' + (tracked ? ' done' : '')}
+                      disabled={tracked}
+                      onClick={() => onTrack(o, album.id)}
+                      title="Add to Vendor CRM as a lead"
+                    >
+                      {tracked ? '✓ In CRM' : '+ Track in CRM'}
+                    </button>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </section>
       )}

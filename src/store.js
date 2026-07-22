@@ -1,5 +1,8 @@
 // localStorage-backed store. Shaped so a real backend can drop in later:
-// albums[], options[] with status ('approved' | 'pending') and per-spouse likes.
+// albums[], options[] with status ('approved' | 'pending') and per-spouse likes,
+// vendors[] for the CRM.
+
+import { seedVendors } from './crm'
 
 const KEY = 'marrymap:v1'
 
@@ -69,13 +72,18 @@ function seed() {
     addedBy: 'guest',
   })
 
-  return { albums, options }
+  return { albums, options, vendors: seedVendors() }
 }
 
 export function load() {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      // migrate state saved before the CRM existed
+      if (!parsed.vendors) parsed.vendors = seedVendors()
+      return parsed
+    }
   } catch {}
   const fresh = seed()
   save(fresh)
