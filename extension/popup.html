@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+  <!-- Phase 1: Capturing -->
+  <div id="p-capture" class="phase">
+    <div class="viewfinder">
+      <div id="flash" class="shutter-flash"></div>
+      <div class="vf-frame">
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+        <div class="crosshair"></div>
+      </div>
+    </div>
+    <p class="status-text">Capturing screenshot...</p>
+  </div>
+
+  <!-- Phase 2: Analyzing -->
+  <div id="p-analyze" class="phase hidden">
+    <div class="ss-wrap">
+      <img id="ss-img" src="" alt="Screenshot">
+      <div class="scan-line"></div>
+    </div>
+    <p class="status-text">Analyzing vendor page...</p>
+  </div>
+
+  <!-- Phase 3: Card -->
+  <div id="p-card" class="phase hidden">
+    <div class="card">
+      <div class="card-img-wrap">
+        <img id="card-img" src="" alt="">
+        <div class="img-gradient"></div>
+        <span id="cat-badge" class="cat-badge"></span>
+      </div>
+      <div class="card-body">
+        <h2 id="card-title"></h2>
+        <ul id="card-bullets" class="bullets"></ul>
+      </div>
+      <div class="card-footer">
+        <button id="btn-save" class="btn-primary">Save to Board</button>
+        <button id="btn-dismiss" class="btn-ghost">Dismiss</button>
+      </div>
+    </div>
+    <div id="toast" class="toast hidden"></div>
+    <button id="btn-settings" class="settings-link" title="Supabase settings">&#9881; Settings</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

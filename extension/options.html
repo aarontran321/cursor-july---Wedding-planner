@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Wedding Vendor Clipper — Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fafafa;
+      display: flex;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e8e8e8;
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 28px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #111;
+      outline: none;
+      margin-bottom: 18px;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: #c9748e; }
+    input::placeholder { color: #bbb; }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #c9748e;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #b55e78; }
+    #status {
+      margin-top: 14px;
+      font-size: 13px;
+      text-align: center;
+      min-height: 18px;
+    }
+    .status-ok  { color: #2d7d46; }
+    .status-err { color: #c25b30; }
+    .divider {
+      border: none;
+      border-top: 1px solid #f0f0f0;
+      margin: 24px 0;
+    }
+    .hint {
+      font-size: 12px;
+      color: #aaa;
+      line-height: 1.6;
+    }
+    .hint a { color: #c9748e; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Supabase Connection</h1>
+    <p class="subtitle">Connect the extension to your Supabase project to save vendor clips.</p>
+
+    <label for="url">Project URL</label>
+    <input id="url" type="url" placeholder="https://xxxxxxxxxxxx.supabase.co" autocomplete="off">
+
+    <label for="key">Anon / Public Key</label>
+    <input id="key" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." autocomplete="off">
+
+    <button id="btn-save">Save Settings</button>
+    <p id="status"></p>
+
+    <hr class="divider">
+    <p class="hint">
+      Find these in your Supabase dashboard under <strong>Project Settings → API</strong>.<br>
+      Run <code>schema.sql</code> then <code>seed.sql</code> from the <code>database/</code> folder in the SQL Editor before saving your first clip.
+    </p>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

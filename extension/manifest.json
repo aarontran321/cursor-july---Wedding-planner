@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Wedding Vendor Clipper",
+  "description": "Capture and analyze wedding vendor pages in one click",
+  "version": "1.0.0",
+  "permissions": ["activeTab", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Clip this Vendor"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
